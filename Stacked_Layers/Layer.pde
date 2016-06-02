@@ -1,78 +1,122 @@
 class Segment {
-  float angle, centerX, centerY, completedRotation, radius, dim, depth, circleRadius, depthR;
-  Segment(float a, float circleR, float d, float x, float y, float c) {
+  float angle, completedRotation, radius, dim, depth, circleRadius, depthR, thickness;
+  PVector[] vertices;
+  Segment(float a, float circleR, float d, float t, float c) {
     angle = a;
-    centerX = x;
-    centerY = y;
+    thickness = t;
     depthR = d; //how much of the radius of the layer the segment fills
     circleRadius = circleR; //from the center to the lowest radius on the section
     completedRotation = c;
     radius = circleRadius*cos(angle/2);
     depth = -(depthR*cos(angle/2)-radius); //(radius-depth)/cos(angle/2)
     dim = 2*radius*cos(angle/2);
+    vertices = new PVector[4];
+    vertices[0] = new PVector(-(radius-depth)*tan(angle/2), -(radius-depth), 0);
+    vertices[1] = new PVector(-radius*tan(angle/2), -radius, 0);
+    vertices[2] = new PVector(radius*tan(angle/2), -radius, 0);
+    vertices[3] = new PVector((radius-depth)*tan(angle/2), -(radius-depth), 0);
   }
-  void display() {
+
+  void display(float x, float y) {
     pushMatrix();
-    translate(centerX, centerY);
+    translate(x, y, -thickness/2);
     rotate(completedRotation);
-    beginShape();
-    stroke(0);
-    vertex(-(radius-depth)*tan(angle/2), -(radius-depth));
-    vertex(-radius*tan(angle/2), -radius);
-    vertex(radius*tan(angle/2), -radius);
-    vertex((radius-depth)*tan(angle/2), -(radius-depth));
-    vertex(-(radius-depth)*tan(angle/2), -(radius-depth));
-    endShape();
+    shape3D(vertices, thickness);
     popMatrix();
   }
 }
 
 class NormalLayer extends Layer { //layers where every segment is the same
-  NormalLayer(int num, float t, float r, float d, float x, float y) {
+  NormalLayer(int num, float t, float r, float d) {
     numberOfSides = num;
     thickness = t;
     radius = r; //smallest radius of layer
     depth = d;
-    this.x = x;
-    this.y = y;
     anglePerSegment = TWO_PI/numberOfSides;
     circleR = radius/cos(anglePerSegment/2); //largest radius of bowl
     for (int i = 0; i<numberOfSides; i++) {
-      segments.add(new Segment(anglePerSegment, circleR, depth, x, y, i*anglePerSegment));
+      segments.add(new Segment(anglePerSegment, circleR, depth, thickness, i*anglePerSegment));
     }
   }
 }
-
 class SegmentedLayer extends Layer { //layer with a divider between each layer
   float anglePerDiv;
-
-  SegmentedLayer(int num, float divWidth, float t, float r, float d, float x, float y) {
+  SegmentedLayer(int num, float divWidth, float t, float r, float d) {
     numberOfSides = num;
     thickness = t;
     radius = r;
     depth = d;
-    this.x = x;
-    this.y = y;
     anglePerDiv = 2*atan(divWidth/(2*radius));
     anglePerSegment = (TWO_PI-(anglePerDiv*numberOfSides))/numberOfSides;
     circleR = radius/cos(anglePerSegment/2);
     depthR = (radius-depth)/cos(anglePerSegment/2);
     float rot = (anglePerSegment+anglePerDiv)/2;
     for (float i = 0; i < TWO_PI; i+=rot) {
-      segments.add(new Segment(anglePerSegment, circleR, depthR, x, y, i));
+      segments.add(new Segment(anglePerSegment, circleR, depthR, thickness, i));
       i+=rot;
-      segments.add(new Segment(anglePerDiv, circleR, depthR, x, y, i));
+      segments.add(new Segment(anglePerDiv, circleR, depthR, thickness, i));
     }
   }
 }
 
 abstract class Layer {
   int numberOfSides;
-  float radius, x, y, depth, thickness, anglePerSegment, circleR, depthR;//in inches radius is the smallest radius that the segments create since that is the biggest possible radius for the turned layer
+  float radius, depth, thickness, anglePerSegment, circleR, depthR;//in inches radius is the smallest radius that the segments create since that is the biggest possible radius for the turned layer
+  boolean mouseOver;
   ArrayList<Segment> segments = new ArrayList<Segment>();
-  void display() {
+  void display(float x, float y) {
+    if (mouseOver()) {
+      stroke(0, 122, 0);
+      fill(0);
+    } else {
+      stroke(0);
+    }
     for (Segment s : segments) {
-      s.display();
+      s.display(x, y);
+      //shape3D(vertices, 200);
     }
   }
+
+  boolean mouseOver() {
+    return (mouseY > thickness+y+10 && mouseY < 3*thickness+y && editing != this);
+  }
+}
+
+void shape3D(PVector[] vertices, float t) {
+  fill(255);
+  beginShape();//top
+  for (int i = 0; i < vertices.length; i++) {
+    vertex(vertices[i].x, vertices[i].y, t/2);
+  }
+  endShape(CLOSE);
+  beginShape();//bottom
+  for (int i = 0; i < vertices.length; i++) {
+    vertex(vertices[i].x, vertices[i].y, -t/2);
+  }
+  endShape(CLOSE);
+
+  beginShape();
+  vertex(vertices[0].x, vertices[0].y, t/2);
+  vertex(vertices[1].x, vertices[1].y, t/2);
+  vertex(vertices[1].x, vertices[1].y, -t/2);
+  vertex(vertices[0].x, vertices[0].y, -t/2);
+  endShape();
+  beginShape();
+  vertex(vertices[1].x, vertices[1].y, t/2);
+  vertex(vertices[2].x, vertices[2].y, t/2);
+  vertex(vertices[2].x, vertices[2].y, -t/2);
+  vertex(vertices[1].x, vertices[1].y, -t/2);
+  endShape();
+  beginShape();
+  vertex(vertices[2].x, vertices[2].y, t/2);
+  vertex(vertices[3].x, vertices[3].y, t/2);
+  vertex(vertices[3].x, vertices[3].y, -t/2);
+  vertex(vertices[2].x, vertices[2].y, -t/2);
+  endShape();
+  beginShape();
+  vertex(vertices[3].x, vertices[3].y, t/2);
+  vertex(vertices[0].x, vertices[0].y, t/2);
+  vertex(vertices[0].x, vertices[0].y, -t/2);
+  vertex(vertices[3].x, vertices[3].y, -t/2);
+  endShape();
 }
