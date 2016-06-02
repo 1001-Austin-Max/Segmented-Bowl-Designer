@@ -2,25 +2,27 @@ class Bowl {
   ArrayList<Layer> layers = new ArrayList<Layer>();
   float totalThickness = 0;
   float totalRadius = 0;
-  float[] pers = {1.2,0}; //x rotation, translate down scale
+  float[] pers = {1.2, 0}; //x rotation, translate down scale
   Bowl() {
   }
 
   void display() {
+    miniLayers();
     if (editing == null) {
-      miniLayers();
+      
       pushMatrix();
-      translate(x,y,-(totalThickness/2)-(100*layers.size()));
-      rotateX(1.2);
+      translate(x, y, -(totalThickness/2)-(100*layers.size()));
+      rotateX(pers[0]);
       //scale(width/totalRadius);
-      translate(-x,-y,totalThickness);
+      translate(-x, -y, totalThickness);
+      //translate(0,0,layers.get(0).thickness);
       for (Layer l : layers) {
-        l.display(x,y);
-        translate(0,0,l.thickness);
+        l.display(x, y);
+        translate(0, 0, (l.thickness));
       }
       popMatrix();
     } else {
-      editing.display(x,y);
+      editing.display(x, y);
     }
   }
 
@@ -40,21 +42,25 @@ class Bowl {
   }
   
   void miniLayers(){
-    if(layers.size() > 0){
-      float y = width/layers.size();
-      int i = 0;
-      for(float lastX = width/layers.size(); lastX < width + (width/layers.size()); lastX+=width/layers.size()){
-        line(lastX, 0, 0,lastX, y,0);
-        Layer l = layers.get(i);
-        pushMatrix();
-        translate(lastX-(width/(2*layers.size())), y/2);
-        scale((width/layers.size())/(3*l.radius));
-        translate(-lastX+(width/(2*layers.size())), -y/2);
-        l.display(lastX-(width/(2*layers.size())), y/2);
-        popMatrix();
-        i++;
-      }
-      line(0,y,0,width,y,0);
+    float xSpacer = width/layers.size();
+    float start = xSpacer/2;
+    float y = start;
+    //translate(start,start);
+    for(int i = 0; i < layers.size();i++){
+      pushMatrix();
+      Layer l = layers.get(i);
+      noFill();
+      rect(i*xSpacer, 0,(i+1)*(xSpacer), y*2);
+      fill(255);
+      translate((i*xSpacer)+start, start);
+      scale(xSpacer/(1.2*(totalRadius/width)*l.radius));
+      translate(-(i*xSpacer)-start, -start);
+      l.display((i*xSpacer)+start, start);
+      popMatrix();
+      fill(0);
+      textAlign(CENTER, TOP);
+      textSize(20);
+      text("Layer " + (i+1),(i*xSpacer)+start, xSpacer + 5);
     }
   }
 }
