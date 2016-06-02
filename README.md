@@ -1,2 +1,2 @@
 # Segmented-Bowl-Designer
-Used to easily plan out the layers of a bowl
+Used to easily plan out the layers of a wooden bowl
